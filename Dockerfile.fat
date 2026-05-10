@@ -1,0 +1,28 @@
+FROM python:3.9
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    curl \
+    git \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    wget \
+    unzip \
+    vim \
+    htop \
+    net-tools \
+    iputils-ping
+
+WORKDIR /app
+
+RUN pip install --upgrade pip
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+RUN pip install pillow numpy scipy scikit-learn pandas matplotlib requests Django
+
+COPY export_model.py inference.py model.pt ./
+
+CMD ["python", "inference.py", "--help"]
