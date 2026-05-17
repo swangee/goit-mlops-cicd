@@ -1,46 +1,20 @@
-# Lesson 3 — контейнеризація ML-моделі
-
-## Файли
-
-- `install_dev_tools.sh` — встановлює docker, python і ML залежності
-- `export_model.py` — зберігає mobilenet_v2 у `model.pt`
-- `inference.py` — топ-3 передбачення для картинки
-- `Dockerfile.fat` / `Dockerfile.slim`
-- `report.md` — порівняння образів
-
-## Як запустити
-
-Спочатку згенерувати модель:
+## Запуск
 
 ```bash
-uv venv
-uv pip install torch torchvision pillow
-uv run python export_model.py
+# 0. S3-бакет для стейту (одноразово, якщо ще не створений)
+cd bootstrap && terraform init && terraform apply && cd ..
+
+# 1. Розгортання VPC + EKS
+terraform init
+terraform apply
+
+# 2. Доступ до кластера
+aws eks --region eu-north-1 update-kubeconfig --name mlops-eks
+kubectl get nodes
 ```
 
-Зібрати образи:
+## Видалення
 
 ```bash
-docker build -f Dockerfile.fat -t ml-fat .
-docker build -f Dockerfile.slim -t ml-slim .
-```
-
-Запустити inference:
-
-```bash
-docker run --rm -v "$(pwd)":/data ml-slim python /app/inference.py /data/cat.webp
-```
-
-Або локально без докера:
-
-```bash
-uv run python inference.py cat.webp
-uv run python inference.py cat.webp --top 5
-```
-
-## Setup-скрипт
-
-```bash
-chmod +x install_dev_tools.sh
-./install_dev_tools.sh
+terraform destroy
 ```
