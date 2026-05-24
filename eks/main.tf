@@ -16,15 +16,27 @@ module "eks" {
   eks_managed_node_group_defaults = {
     instance_types = var.instance_types
     capacity_type  = "ON_DEMAND"
-    disk_size      = 20
+
+    # disk_size ігнорується при custom launch template (дефолт у модулі v20),
+    # тож розмір кореневого тому задаємо через block_device_mappings.
+    block_device_mappings = {
+      xvda = {
+        device_name = "/dev/xvda"
+        ebs = {
+          volume_size           = 20
+          volume_type           = "gp3"
+          delete_on_termination = true
+        }
+      }
+    }
   }
 
   eks_managed_node_groups = {
     cpu = {
       name         = "cpu-ng"
       min_size     = 1
-      max_size     = 3
-      desired_size = 2
+      max_size     = 10
+      desired_size = 10
 
       labels = {
         workload = "cpu"
@@ -37,9 +49,9 @@ module "eks" {
 
     gpu = {
       name         = "gpu-ng"
-      min_size     = 1
+      min_size     = 0
       max_size     = 2
-      desired_size = 1
+      desired_size = 0
 
       labels = {
         workload = "gpu"

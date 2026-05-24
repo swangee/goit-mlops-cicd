@@ -31,3 +31,24 @@ module "eks" {
 
   tags = local.common_tags
 }
+
+# Встановлення Argo CD у кластер (Helm).
+module "argocd" {
+  source = "./argocd"
+
+  argocd_namespace     = var.argocd_namespace
+  argocd_chart_version = var.argocd_chart_version
+
+  depends_on = [module.eks]
+}
+
+# Argo CD-ресурси (ApplicationSet тощо) поверх уже встановленого Argo CD.
+module "argocd_apps" {
+  source = "./argocd-apps"
+
+  argocd_namespace = var.argocd_namespace
+  app_repo_url     = var.app_repo_url
+  app_repo_branch  = var.app_repo_branch
+
+  depends_on = [module.argocd]
+}

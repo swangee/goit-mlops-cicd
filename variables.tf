@@ -57,3 +57,27 @@ variable "tfsate_bucket_name" {
   type        = string
   default     = "mlops-tfstate-eugenel"
 }
+
+variable "argocd_namespace" {
+  description = "Namespace for Argo CD"
+  type        = string
+  default     = "infra-tools"
+}
+
+variable "argocd_chart_version" {
+  description = "Argo CD Helm chart version (argo-helm repo)"
+  type        = string
+  default     = "7.7.5"
+}
+
+variable "app_repo_url" {
+  description = "Public Git repo with application manifests"
+  type        = string
+  default     = "https://github.com/swangee/goit-mlops-cicd.git"
+}
+
+variable "app_repo_branch" {
+  description = "Branch of the manifests repo"
+  type        = string
+  default     = "lesson7"
+}
