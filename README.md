@@ -30,9 +30,9 @@
 make bootstrap       # 0. S3-бакет для стейту (одноразово, якщо ще не створений)
 make init            # 1. ініціалізація
 make apply-cluster   # 2. фаза 1 — VPC + EKS
+make kubeconfig      # (опційно) доступ kubectl: kubectl get nodes
 make apply-argocd    # 3. фаза 2 — встановлення Argo CD (створює admin-secret)
 make apply           # 4. фаза 3 — argocd_application_set
-make kubeconfig      # (опційно) доступ kubectl: kubectl get nodes
 ```
 
 Або послідовним ланцюгом:
@@ -51,13 +51,44 @@ make apply   # застосувати
 > Регіон і назву кластера для `make kubeconfig` можна перевизначити:
 > `make kubeconfig REGION=eu-north-1 CLUSTER_NAME=mlops-eks`.
 
-## Маніфести застосунків
+## Маніфести застосунків (Де зберігаються applications)
 
-`argocd-apps` створює `ApplicationSet` із git-генератором каталогів, що читає
-`applications/goit-lesson7/namespaces/*` з репозиторію `app_repo_url`
-(`https://github.com/swangee/goit-mlops-cicd.git`, гілка `lesson7`). Маніфести
-namespace'ів мають лежати саме там — Argo CD розгортає по одному `Application`
-на кожен підкаталог.
+Застосунки для розкатки через ArgoCD зберігаються в директорії:
+`applications/goit-lesson7/namespaces/`
+
+Кожен підкаталог у цій папці (наприклад, `application` або `infra-tools`) містить YAML-маніфести ресурсів (Deployment, Service, Namespace тощо) для окремого застосунку.
+
+Модуль `argocd-apps` створює `ApplicationSet` із git-генератором каталогів, що читає
+шлях `applications/goit-lesson7/namespaces/*` з репозиторію `app_repo_url`
+(`https://github.com/swangee/goit-mlops-cicd.git`, гілка `lesson7`).
+
+Argo CD автоматично знаходить ці папки та розгортає по одному `Application` на кожен підкаталог. Щоб додати новий застосунок для розкатки, достатньо створити нову папку з маніфестами в цій директорії та зберегти зміни в Git.
+
+## Підключення до Nginx Service
+
+Щоб підключитися до розгорнутого сервісу Nginx локально, використайте `kubectl port-forward`:
+
+```bash
+kubectl port-forward svc/nginx-service -n application 8081:80
+```
+
+Після цього Nginx буде доступний за адресою [http://localhost:8081](http://localhost:8081).
+
+## Підключення до ArgoCD
+
+Щоб отримати початковий пароль адміністратора (користувач `admin`), виконайте команду:
+
+```bash
+kubectl -n infra-tools get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+Щоб підключитися до веб-інтерфейсу ArgoCD локально, використайте `kubectl port-forward`:
+
+```bash
+kubectl port-forward svc/argocd-server -n infra-tools 8080:80
+```
+
+Після цього ArgoCD буде доступний за адресою [http://localhost:8080](http://localhost:8080).
 
 ## Видалення
 
