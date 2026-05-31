@@ -33,14 +33,10 @@ spec:
             password: goit-postgres-password
             driver: psycopg2
 
-        # Не піднімати власний Postgres із чарту — використовуємо зовнішній.
         postgresql:
           enabled: false
 
-        # --- Artifact store: наявний MinIO у infra-tools (bucket mlflow-artifacts) ---
         artifactRoot:
-          # Проксіювати артефакти через сам tracking server (--serve-artifacts),
-          # щоб клієнтам не треба було знати креди MinIO.
           proxiedArtifactStorage: true
           s3:
             enabled: true
@@ -48,7 +44,6 @@ spec:
             awsAccessKeyId: minio-admin
             awsSecretAccessKey: goit-minio-password
 
-        # MinIO — це S3-сумісний endpoint по http, тож вказуємо його явно.
         extraEnvVars:
           MLFLOW_S3_ENDPOINT_URL: http://minio.infra-tools.svc.cluster.local:9000
           MLFLOW_S3_IGNORE_TLS: "true"
@@ -68,6 +63,7 @@ spec:
         serviceMonitor:
           enabled: true
           namespace: mlflow
+          useServicePort: true
           labels:
             release: kube-prometheus-stack
 
