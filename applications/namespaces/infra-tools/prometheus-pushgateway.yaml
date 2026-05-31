@@ -33,6 +33,8 @@ spec:
         # serviceMonitorSelector його не підбере.
         serviceMonitor:
           enabled: true
+          # Чарт за замовчуванням ставить namespace: monitoring, якого немає.
+          namespace: infra-tools
           additionalLabels:
             release: kube-prometheus-stack
 
