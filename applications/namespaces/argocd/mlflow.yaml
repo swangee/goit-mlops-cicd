@@ -61,9 +61,7 @@ spec:
           requests:
             memory: 512Mi
             cpu: 250m
-          limits:
-            memory: 1Gi
-            cpu: 500m
+
 
         # Скрейпиться Prometheus'ом зі стеку. Дефолти чарту (namespace: monitoring,
         # release: prometheus) тут не підходять — виправляємо під наш стек.
