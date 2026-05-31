@@ -1,0 +1,85 @@
+# MLflow Tracking Server. Application-обʼєкт живе в infra-tools (ArgoCD стежить
+# за apps лише у своєму ns), а сам MLflow їде в окремий namespace mlflow через
+# destination.namespace + CreateNamespace=true. Бекенд і артефакти — наявні
+# Postgres та MinIO з infra-tools.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mlflow
+  namespace: infra-tools
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://community-charts.github.io/helm-charts
+    chart: mlflow
+    targetRevision: 1.8.2
+    helm:
+      valuesObject:
+        replicaCount: 1
+
+        # --- Backend store: наявний Postgres у infra-tools (база/юзер mlops) ---
+        backendStore:
+          databaseMigration: true
+          databaseConnectionCheck: true
+          postgres:
+            enabled: true
+            host: postgres-postgresql.infra-tools.svc.cluster.local
+            port: 5432
+            database: mlops
+            user: mlops
+            password: goit-postgres-password
+            driver: psycopg2
+
+        # Не піднімати власний Postgres із чарту — використовуємо зовнішній.
+        postgresql:
+          enabled: false
+
+        # --- Artifact store: наявний MinIO у infra-tools (bucket mlflow-artifacts) ---
+        artifactRoot:
+          # Проксіювати артефакти через сам tracking server (--serve-artifacts),
+          # щоб клієнтам не треба було знати креди MinIO.
+          proxiedArtifactStorage: true
+          s3:
+            enabled: true
+            bucket: mlflow-artifacts
+            awsAccessKeyId: minio-admin
+            awsSecretAccessKey: goit-minio-password
+
+        # MinIO — це S3-сумісний endpoint по http, тож вказуємо його явно.
+        extraEnvVars:
+          MLFLOW_S3_ENDPOINT_URL: http://minio.infra-tools.svc.cluster.local:9000
+          MLFLOW_S3_IGNORE_TLS: "true"
+
+        service:
+          type: ClusterIP
+          port: 5000
+
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+          limits:
+            memory: 1Gi
+            cpu: 500m
+
+        # Скрейпиться Prometheus'ом зі стеку. Дефолти чарту (namespace: monitoring,
+        # release: prometheus) тут не підходять — виправляємо під наш стек.
+        serviceMonitor:
+          enabled: true
+          namespace: mlflow
+          labels:
+            release: kube-prometheus-stack
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mlflow
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
