@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgres
+  namespace: infra-tools
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: postgresql
+    targetRevision: 16.4.4
+    helm:
+      valuesObject:
+        architecture: standalone
+
+        auth:
+          username: mlops
+          password: goit-postgres-password
+          database: mlops
+
+        primary:
+          persistence:
+            enabled: true
+            size: 10Gi
+
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 250m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+
+        service:
+          type: ClusterIP
+          port: 5432
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infra-tools
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
