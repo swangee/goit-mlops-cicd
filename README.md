@@ -1,55 +1,52 @@
 ## Архітектура
 
-Один root-стек, один стейт (`eks-vpc-cluster/terraform.tfstate`):
+Один root-стек, **локальний стейт** (`terraform.tfstate` у корені), розгортання в
+**локальний Kubernetes** (`docker-desktop`):
 
-- `vpc/`, `eks/` — мережа та кластер EKS (провайдер `aws`).
 - `argocd/` — встановлення Argo CD у кластер через Helm (провайдери `kubernetes`, `helm`).
 - `argocd-apps/` — Argo CD-ресурси поверх установленого Argo CD: `argocd_application_set`
-  та потенційно інші (провайдер `argocd`).
+  з git-генератором каталогів (провайдер `argocd`).
 
-Провайдер `argocd` підключається до вже працюючого `argocd-server` через **port-forward**
-(inline EKS-креди в блоці `kubernetes`, автентифікація admin-паролем із secret'а
+Провайдери `kubernetes`/`helm` беруть конфіг із `~/.kube/config` (контекст
+`docker-desktop`). Провайдер `argocd` підключається до `argocd-server` через
+**port-forward** (автентифікація admin-паролем із secret'а
 `argocd-initial-admin-secret`; `plain_text`, бо сервер запущено з `--insecure`).
 
 Провайдери сконфігуровані в root, модулі їх успадковують.
-Порядок розгортання: `vpc → eks → argocd → argocd-apps` (через `depends_on`).
+Порядок розгортання: `argocd → argocd-apps` (через `depends_on`).
+
+> Раніше стек піднімав власний кластер на AWS (VPC + EKS, стейт у S3). Зараз він
+> мігрований на локальний `docker-desktop` — кластер уже існує, тож Terraform лише
+> ставить у нього Argo CD та застосунки.
 
 ## Передумови
 
-- AWS-креди з доступом до S3-бакета зі стейтом.
-- `kubectl`/`kubeconfig` — лише для зручності (`make kubeconfig`). Провайдеру `argocd`
-  окремий kubeconfig не потрібен: він ходить inline-кредами + port-forward.
+- Запущений локальний Kubernetes (Docker Desktop з увімкненим Kubernetes),
+  контекст `docker-desktop` у `~/.kube/config`.
+- `terraform >= 1.5`, `kubectl`, `helm`.
+- `uv` — для ML-пайплайна `model-runner/`.
+
+Контекст і namespace за потреби перевизначаються через змінні
+(`kubeconfig_context`, `argocd_namespace` тощо у `variables.tf`).
 
 ## Запуск (з нуля)
 
-> Провайдери `kubernetes`/`helm`/`argocd` беруть конфіг із кластера, а пароль для
-> `argocd` — із secret'а, що зʼявляється лише після встановлення Argo CD. Тому перший
-> прогін **трифазний**: кластер → встановлення Argo CD → Argo CD-ресурси.
+> Провайдер `argocd` бере пароль із secret'а, що зʼявляється лише після встановлення
+> Argo CD. Тому перший прогін **двофазний**: спершу встановити Argo CD, потім —
+> Argo CD-ресурси.
 
 ```bash
-make bootstrap       # 0. S3-бакет для стейту (одноразово, якщо ще не створений)
 make init            # 1. ініціалізація
-make apply-cluster   # 2. фаза 1 — VPC + EKS
-make kubeconfig      # (опційно) доступ kubectl: kubectl get nodes
-make apply-argocd    # 3. фаза 2 — встановлення Argo CD (створює admin-secret)
-make apply           # 4. фаза 3 — argocd_application_set
+make apply-argocd    # 2. фаза 1 — встановлення Argo CD (створює admin-secret)
+make apply           # 3. фаза 2 — argocd_application_set
 ```
 
-Або послідовним ланцюгом:
-
-```bash
-make bootstrap init apply-cluster apply-argocd apply
-```
-
-Коли кластер і Argo CD уже існують, подальші зміни застосовуються в один прохід:
+Коли Argo CD уже встановлений, подальші зміни застосовуються в один прохід:
 
 ```bash
 make plan    # переглянути зміни
 make apply   # застосувати
 ```
-
-> Регіон і назву кластера для `make kubeconfig` можна перевизначити:
-> `make kubeconfig REGION=eu-north-1 CLUSTER_NAME=mlops-eks`.
 
 ## Маніфести застосунків (Де зберігаються applications)
 
@@ -82,6 +79,21 @@ namespace з тією ж назвою (`CreateNamespace=true`, `recurse`).
 `argocd/` з потрібним `destination.namespace`; для звичайних маніфестів — створити
 нову папку-namespace з YAML-ресурсами.
 
+## ML-пайплайн (`model-runner/`)
+
+Тюнінг `SGDClassifier` на Iris через Optuna: кожен trial логується в **MLflow**,
+метрики (`model_accuracy`, `model_loss`) пушаться в **Prometheus PushGateway**,
+найкраща модель копіюється в `model-runner/best_model/`.
+
+Запуск і доступ до MLflow / PushGateway / Grafana описані в
+[`model-runner/README.md`](model-runner/README.md). Стисло:
+
+```bash
+cd model-runner
+uv sync
+uv run train_and_push.py
+```
+
 ## Підключення до Nginx Service
 
 Щоб підключитися до розгорнутого сервісу Nginx локально, використайте `kubectl port-forward`:
@@ -108,9 +120,15 @@ kubectl port-forward svc/argocd-server -n argocd 8080:80
 
 Після цього ArgoCD буде доступний за адресою [http://localhost:8080](http://localhost:8080).
 
+## Скриншоти
+
+- ArgoCD — [`images/argocd.png`](images/argocd.png)
+- MLflow UI — [`images/mlflow.png`](images/mlflow.png)
+- Grafana Explore — [`images/grafana.png`](images/grafana.png)
+
 ## Видалення
 
 ```bash
-# kubeconfig має вказувати на кластер (k8s/helm/argocd-ресурси видаляються першими)
+# контекст kubeconfig має вказувати на кластер (k8s/helm/argocd-ресурси видаляються першими)
 make destroy
 ```

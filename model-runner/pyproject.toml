@@ -1,0 +1,14 @@
+[project]
+name = "model-runner"
+version = "0.1.0"
+description = "A simple model runner and results tracker"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "alibi-detect>=0.13.0",
+    "dotenv>=0.9.9",
+    "mlflow>=3.12.0",
+    "optuna>=4.8.0",
+    "prometheus-client>=0.25.0",
+    "scikit-learn>=1.8.0",
+]

@@ -20,5 +20,10 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Архів домашнього завдання
-ДЗ5_*.zip
+# Архіви домашніх завдання
+ДЗ*.zip
+/model-runner/.env
+
+# Python
+__pycache__/
+*.pyc
