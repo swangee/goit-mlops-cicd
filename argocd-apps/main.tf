@@ -14,7 +14,7 @@ resource "argocd_application_set" "applications" {
         revision = var.app_repo_branch
 
         directory {
-          path = "applications/goit-lesson7/namespaces/*"
+          path = "applications/namespaces/*"
         }
       }
     }
