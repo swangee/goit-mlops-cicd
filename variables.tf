@@ -19,7 +19,7 @@ variable "cluster_name" {
 variable "argocd_namespace" {
   description = "Namespace for Argo CD"
   type        = string
-  default     = "infra-tools"
+  default     = "argocd"
 }
 
 variable "argocd_chart_version" {

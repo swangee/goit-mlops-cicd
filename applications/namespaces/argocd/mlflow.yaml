@@ -1,12 +1,12 @@
-# MLflow Tracking Server. Application-обʼєкт живе в infra-tools (ArgoCD стежить
-# за apps лише у своєму ns), а сам MLflow їде в окремий namespace mlflow через
+# MLflow Tracking Server. Application-обʼєкт живе в argocd (ArgoCD стежить за apps
+# лише у своєму ns), а сам MLflow їде в окремий namespace mlflow через
 # destination.namespace + CreateNamespace=true. Бекенд і артефакти — наявні
 # Postgres та MinIO з infra-tools.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: mlflow
-  namespace: infra-tools
+  namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

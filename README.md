@@ -54,15 +54,33 @@ make apply   # застосувати
 ## Маніфести застосунків (Де зберігаються applications)
 
 Застосунки для розкатки через ArgoCD зберігаються в директорії:
-`applications/goit-lesson7/namespaces/`
-
-Кожен підкаталог у цій папці (наприклад, `application` або `infra-tools`) містить YAML-маніфести ресурсів (Deployment, Service, Namespace тощо) для окремого застосунку.
+`applications/namespaces/`
 
 Модуль `argocd-apps` створює `ApplicationSet` із git-генератором каталогів, що читає
-шлях `applications/goit-lesson7/namespaces/*` з репозиторію `app_repo_url`
-(`https://github.com/swangee/goit-mlops-cicd.git`, гілка `lesson7`).
+шлях `applications/namespaces/*` з репозиторію `app_repo_url`
+(`https://github.com/swangee/goit-mlops-cicd.git`, гілка `lesson9`). Argo CD створює
+по одному `Application` (`ns-<папка>`) на кожен підкаталог і деплоїть його вміст у
+namespace з тією ж назвою (`CreateNamespace=true`, `recurse`).
 
-Argo CD автоматично знаходить ці папки та розгортає по одному `Application` на кожен підкаталог. Щоб додати новий застосунок для розкатки, достатньо створити нову папку з маніфестами в цій директорії та зберегти зміни в Git.
+Розкладка по namespace (модель «централізований hub»):
+
+| namespace | Що там | Як зʼявляється |
+|-----------|--------|----------------|
+| `argocd` | ArgoCD + усі `Application`-обʼєкти (App-of-Apps) | Terraform (ns + Helm) |
+| `infra-tools` | MinIO, PostgreSQL (спільне сховище/БД) | `CreateNamespace=true` |
+| `monitoring` | kube-prometheus-stack, Pushgateway | `CreateNamespace=true` |
+| `mlflow` | MLflow Tracking Server | `CreateNamespace=true` |
+| `application` | demo-nginx | `ns.yaml` у папці |
+
+Важливо: ArgoCD стежить за `Application`-обʼєктами **лише у власному ns (`argocd`)**
+(apps-in-any-namespace вимкнено). Тому `Application`-CRD інфри лежать у папці
+`applications/namespaces/argocd/` (щоб потрапити в ns `argocd`), а самі сервіси
+розводяться по цільових namespace через `destination.namespace`. Сирі маніфести
+(як `application/`) деплояться у власний namespace напряму.
+
+Щоб додати новий застосунок: для Helm-сервісу — додати `Application`-CRD у папку
+`argocd/` з потрібним `destination.namespace`; для звичайних маніфестів — створити
+нову папку-namespace з YAML-ресурсами.
 
 ## Підключення до Nginx Service
 
@@ -79,13 +97,13 @@ kubectl port-forward svc/nginx-service -n application 8081:80
 Щоб отримати початковий пароль адміністратора (користувач `admin`), виконайте команду:
 
 ```bash
-kubectl -n infra-tools get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
 
 Щоб підключитися до веб-інтерфейсу ArgoCD локально, використайте `kubectl port-forward`:
 
 ```bash
-kubectl port-forward svc/argocd-server -n infra-tools 8080:80
+kubectl port-forward svc/argocd-server -n argocd 8080:80
 ```
 
 Після цього ArgoCD буде доступний за адресою [http://localhost:8080](http://localhost:8080).

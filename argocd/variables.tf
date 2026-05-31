@@ -1,7 +1,7 @@
 variable "argocd_namespace" {
   description = "Namespace для Argo CD"
   type        = string
-  default     = "infra-tools"
+  default     = "argocd"
 }
 
 variable "argocd_chart_version" {
