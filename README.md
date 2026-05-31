@@ -122,9 +122,17 @@ kubectl port-forward svc/argocd-server -n argocd 8080:80
 
 ## Скриншоти
 
-- ArgoCD — [`images/argocd.png`](images/argocd.png)
-- MLflow UI — [`images/mlflow.png`](images/mlflow.png)
-- Grafana Explore — [`images/grafana.png`](images/grafana.png)
+**ArgoCD**
+
+<img src="images/argocd.png" alt="ArgoCD" width="600">
+
+**MLflow UI**
+
+<img src="images/mlflow.png" alt="MLflow UI" width="600">
+
+**Grafana Explore**
+
+<img src="images/grafana.png" alt="Grafana Explore" width="600">
 
 ## Видалення
 

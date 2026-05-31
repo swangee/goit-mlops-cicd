@@ -51,5 +51,10 @@ model_loss
 
 ## Скриншоти
 
-- MLflow UI — [`../images/mlflow.png`](../images/mlflow.png)
-- Grafana Explore — [`../images/grafana.png`](../images/grafana.png)
+**MLflow UI**
+
+<img src="../images/mlflow.png" alt="MLflow UI" width="600">
+
+**Grafana Explore**
+
+<img src="../images/grafana.png" alt="Grafana Explore" width="600">
